@@ -1,0 +1,51 @@
+services:
+  nginx:
+    build:
+      context: ./docker/nginx
+    container_name: tasklist_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/var/www/html:ro
+    depends_on:
+      - php
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  php:
+    build:
+      context: ./docker/php
+    container_name: tasklist_php
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:9.7.1
+    container_name: tasklist_mysql
+    env_file: .env
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
