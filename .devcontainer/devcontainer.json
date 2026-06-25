@@ -4,13 +4,6 @@
     "service": "php",
     "workspaceFolder": "/var/www/html",
 
-    "containerEnv": {
-        "MYSQL_ROOT_PASSWORD": "${localEnv:MYSQL_ROOT_PASSWORD}",
-        "MYSQL_DATABASE": "${localEnv:MYSQL_DATABASE}",
-        "MYSQL_USER": "${localEnv:MYSQL_USER}",
-        "MYSQL_PASSWORD": "${localEnv:MYSQL_PASSWORD}"
-    },
-
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2": {
             "installZsh": true,
@@ -36,10 +29,9 @@
         }
     },
 
-    "forwardPorts": [80, 3307],
+    "forwardPorts": [80],
     "portsAttributes": {
-        "80": { "label": "Nginx Web Server" },
-        "3307": { "label": "MySQL Database" }
+        "80": { "label": "Nginx Web Server" }
     },
 
     "postCreateCommand": "php8.5 -v && echo 'Dev container ready!'",
