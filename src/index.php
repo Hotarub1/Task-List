@@ -2,29 +2,10 @@
 
 require_once 'config.php';
 
-// Handle taskList submission
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_list'])) {
-//     $title = trim($_POST['title'] ?? '');
-//     $description = trim($_POST['description'] ?? '');
-
-//     if (empty($title)) {
-//         $message = '❌ Title is required.';
-//     } elseif (isset($pdo)) {
-//         try {
-//             // Prepare an SQL statement to prevent SQL injection
-//             $stmt = $pdo->prepare("INSERT INTO taskLists (title, description) VALUES (:title, :description)");
-//             $stmt->execute([
-//                 'title' => $title,
-//                 'description' => $description
-//             ]);
-//             $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
-//             header('Location: /?success=1');
-//             exit;
-//         } catch (PDOException $e) {
-//             $message = '❌ Error saving to database: ' . $e->getMessage();
-//         }
-//     }
-// }
+// Fetch all tasklists      
+$stmt1 = $pdo->prepare('SELECT * FROM taskLists');
+$stmt1->execute();
+$taskLists = $stmt1->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
     $taskListID = trim($_POST['taskList'] ?? '');
@@ -77,6 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
         .tasklist {
             padding: .25rem;
         }
+
+        li.tasks-container-wrapper {
+            list-style-type: none;
+        }
+
+        li.no-tasks {
+            list-style-type: none;
+        }
     </style>
 </head>
 
@@ -108,21 +97,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
     <h2>Create New Task</h2>
     <form method="POST" action="">
         <div class="form-group">
-            <label for="taskList">Task-List: *</label>
-            <?php
-            if(isset($pdo)) {
-                // Fetch all tasklists
-                $stmt = $pdo->prepare('SELECT * FROM taskLists');
-                $stmt->execute();
-                $taskLists = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                echo '<select id="taskList" name="taskList" required>';
-                foreach ($taskLists as $taskList) {
-                    echo '<option value="' . htmlspecialchars($taskList['id']) . '">' . htmlspecialchars($taskList['title']) . '</option>';
-                }
-                echo '</select>';
-            }
-            ?>
+        <label for="taskList">Task-List: *</label>
+            <?php if (isset($pdo)): ?>
+                <select id="taskList" name="taskList" required>
+                    <?php foreach ($taskLists as $taskList): ?>
+                        <option value="<?= htmlspecialchars($taskList['id']) ?>"><?= htmlspecialchars($taskList['title']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif ?>
         </div>
         <div class="form-group">
             <label for="title">Title *</label>
@@ -137,113 +119,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
 
     <!-- Display Existing Tasklists -->
     <h2>Existing Tasklists</h2>
-    <div id="tasklists-container"> 
-    <?php
-    if (isset($pdo)) {
-        // Fetch all tasklists      
-        $stmt = $pdo->prepare('SELECT * FROM taskLists');
-        $stmt->execute();
-        $taskLists = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    <ul id="tasklists-container">
+        <?php if (isset($pdo)): ?>
+            <?php foreach ($taskLists as $taskList): 
+                $listText = empty($taskList['description']) ?
+                    $taskList['title'] :
+                    $taskList['title'] . ' - ' . $taskList['description'];
 
-        // If tasklists exist, for each tasklist, display list of tasks
-        if ($taskLists) {
-            echo '<ul>'; 
-            foreach ($taskLists as $taskList) {
-                $text = empty(htmlspecialchars($taskList['description'])) ? 
-                    htmlspecialchars($taskList['title']) : 
-                    htmlspecialchars($taskList['title']) . ' - ' . htmlspecialchars($taskList['description']);
-                echo '<li>' . $text . '</li>';
+                // Fetch the tasks for this specific list
+                $stmt2 = $pdo->prepare('SELECT * FROM tasks WHERE task_list_id = :list_id');
+                $stmt2->execute(['list_id' => $taskList['id']]);
+                $tasks = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            ?>
+                <li>
+                    <?= htmlspecialchars($listText) ?>
+                </li>
 
-                // Show all tasks in tasklist
-                $stmt = $pdo->prepare('SELECT * FROM tasks WHERE task_list_id = :list_id');
-                $stmt->execute(['list_id' => $taskList['id']]);
-                $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                if ($tasks) {
-                    echo '<ul>'; 
-                    foreach ($tasks as $task) {
-                        $text = empty(htmlspecialchars($task['description'])) ? 
-                            htmlspecialchars($task['title']) : 
-                            htmlspecialchars($task['title']) . ' - ' . htmlspecialchars($task['description']);
-                        echo '<li class="tasklist">' . $text . '</li>';
-                    }
-                    echo '</ul>';
-                } else {
-                    echo '<p>- No tasks found</p>';
-                }
+                <li class="tasks-container-wrapper">
+                    <ul>
+                        <?php if ($tasks): ?>
+                            <?php foreach ($tasks as $task): 
+                                $taskText = empty($task['description']) ?
+                                    $task['title'] :
+                                    $task['title'] . ' - ' . $task['description'];
+                            ?>
+                                <li class="tasklist"><?= htmlspecialchars($taskText) ?></li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li class="no-tasks">- No tasks found</li>
+                        <?php endif; ?>
+                    </ul>
+                </li>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </ul>
 
-            }
-            echo '</ul>';
-        } else {
-            echo '<p>No tasklists found</p>';
-        }
-    }
-    ?>
-    </div>
+    <?php if (empty($taskLists)): ?>
+        <p id="no-lists">- No lists found </p>
+    <?php endif; ?>
     
-    <script> 
-        const Status = {
-            Error: 'error',
-            Success: 'success'
-        };
+    <script src="tasklist.js"> </script>
 
-        const create_form = document.getElementById("create_tasklist");
-        const container = document.getElementById("tasklists-container");
-        
-        create_form.addEventListener("submit", async function (event) {
-            event.preventDefault();
-            const title = create_form.querySelector('input[name="title"]').value;
-            console.log(title);
-            const description = create_form.querySelector('textarea[name="description"]').value;
-            console.log(description);
-            const url = "/api/create_tasklist.php";
-            const method = "POST";
-            const payload = {
-                title: title,
-                description: description
+    <script> 
+        document.addEventListener("DOMContentLoaded", () => init());
+        function init() {
+            const Status = {
+                Error: 'error',
+                Success: 'success'
             };
 
-            try {
-                console.log(JSON.stringify(payload));
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error("http error");
-                }
+            const create_form = document.getElementById("create_tasklist");
+            const container = document.getElementById("tasklists-container");
+            
+            create_form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                const title = create_form.querySelector('input[name="title"]').value;
+                console.log(title);
+                const description = create_form.querySelector('textarea[name="description"]').value;
+                console.log(description);
+                const url = "/api/create_tasklist.php";
+                const method = "POST";
+                const payload = {
+                    title: title,
+                    description: description
+                };
 
-                const data = await response.json();
-                console.log(data);
-                if (data.status === Status.Success) {
-                    // Remove the placeholder message if it is there
-                    const noListsMsg = document.getElementById("no-lists-msg");
-                    if (noListsMsg) { noListsMsg.remove(); }
-
-                    // Simply inject the perfect HTML snippet that PHP generated for you!
-                    container.insertAdjacentHTML('beforeend', data.data.html);
-
-                    // DYNAMICALLY UPDATE THE DROPDOWN SELECTOR
-                    const dropdown = document.getElementById("taskList");
-                    if (dropdown) {
-                        // Create a new <option value="NEW_ID">NEW_TITLE</option>
-                        const newOption = document.createElement("option");
-                        newOption.value = data.data.id; // The database ID returned by PHP
-                        newOption.textContent = data.data.title; // The clean title text
-                        
-                        // Append it to the dropdown list instantly
-                        dropdown.appendChild(newOption);
+                try {
+                    console.log(JSON.stringify(payload));
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("http error");
                     }
 
-                    create_form.reset();
+                    const data = await response.json();
+                    console.log(data);
+                    if (data.status === Status.Success) {
+                        addTaskList(data.data.title, data.data.description);
+
+                        // DYNAMICALLY UPDATE THE DROPDOWN SELECTOR
+                        const dropdown = document.getElementById("taskList");
+                        if (dropdown) {
+                            // Create a new <option value="NEW_ID">NEW_TITLE</option>
+                            const newOption = document.createElement("option");
+                            newOption.value = data.data.id; // The database ID returned by PHP
+                            newOption.textContent = data.data.title; // The clean title text
+                            
+                            // Append it to the dropdown list instantly
+                            dropdown.appendChild(newOption);
+                        }
+
+                        create_form.reset();
+                    }
+                } catch (error) {
+                    console.error(error);
                 }
-            } catch (error) {
-                console.error(error);
-            }
-        });
+            });
+        }
     </script>
 </body>
 

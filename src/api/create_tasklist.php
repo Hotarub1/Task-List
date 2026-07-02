@@ -43,13 +43,6 @@ if (empty($title) || strlen($title) < 3) {
     http_response(message: 'Title is missing or shorter than 3 characters', status: Status::Error, status_code: 422);
 }
 
-$htmlSnippet = '<ul style="margin-bottom: 1rem; padding-left: 1.5rem;">';
-$htmlSnippet .= '<li class="tasklist">';
-$htmlSnippet .= empty($description) ? htmlspecialchars($title) : htmlspecialchars($title) . ' - ' . htmlspecialchars($description);
-$htmlSnippet .= '</li>';
-$htmlSnippet .= '<p>- No tasks found</p>';
-$htmlSnippet .= '</ul>';
-
 // Handle taskList submission
 try {
     // Prepare an SQL statement to prevent SQL injection
@@ -63,8 +56,7 @@ try {
     $responseData = [
         'id' => (int) $pdo->lastInsertId(),
         'title' => $title,
-        'description' => $description,
-        'html' => $htmlSnippet
+        'description' => $description
     ];
 
     $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
