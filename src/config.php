@@ -1,5 +1,17 @@
 <?php
 
+if ($_SERVER['HTTP_HOST'] == 'localhost') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
+
+require_once __DIR__ . '/Models/Model.php';
+require_once __DIR__ . '/Models/Task.php';
+require_once __DIR__ . '/Models/TaskList.php';
+require_once __DIR__ . '/Services/TaskRepository.php';
+require_once __DIR__ . '/Services/TaskListRepository.php';
+
 session_start();
 
 $host = 'mysql';

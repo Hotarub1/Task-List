@@ -1,39 +1,36 @@
 <?php
 
+use Services\TaskListRepository;
+use Services\TaskRepository;
+
 require_once 'config.php';
 
-// Fetch all tasklists      
-$stmt1 = $pdo->prepare('SELECT * FROM taskLists');
-$stmt1->execute();
-$taskLists = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+$taskListRepo = new TaskListRepository($pdo);
+$taskLists = $taskListRepo->fetchAll();
+var_dump(json_encode($taskLists));
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
-    $taskListID = trim($_POST['taskList'] ?? '');
-    $title = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
+$tasksRepo = new TaskRepository($pdo);
 
-    if (empty($taskListID)) {
-        $message = '❌ Task List is required.';
-    } elseif (empty($title)) {
-        $message = '❌ Title is required.';
-    } elseif (isset($pdo)) {
-        try {
-            // Prepare an SQL statement to prevent SQL injection
-            $stmt = $pdo->prepare("INSERT INTO tasks (task_list_id, title, description) 
-                VALUES (:task_list_id, :title, :description)");
-            $stmt->execute([
-                'task_list_id' => $taskListID,
-                'title' => $title,
-                'description' => $description
-            ]);
-            $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
-            header('Location: /?success=1');
-            exit;
-        } catch (PDOException $e) {
-            $message = '❌ Error saving to database: ' . $e->getMessage();
-        }
-    }
-}
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
+//     $taskListID = trim($_POST['taskList'] ?? '');
+//     $title = trim($_POST['title'] ?? '');
+//     $description = trim($_POST['description'] ?? '');
+
+//     if (empty($taskListID)) {
+//         $message = '❌ Task List is required.';
+//     } elseif (empty($title)) {
+//         $message = '❌ Title is required.';
+//     } elseif (isset($pdo)) {
+//         try {
+//             $tasksRepo->create($taskListID, $title, $description);
+//             $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
+//             header('Location: /?success=1');
+//             exit;
+//         } catch (PDOException $e) {
+//             $message = '❌ Error saving to database: ' . $e->getMessage();
+//         }
+//     }
+// }
 
 ?>
 <!DOCTYPE html>
@@ -95,13 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
 
     <!-- HTML Form to Create Task -->
     <h2>Create New Task</h2>
-    <form method="POST" action="">
+    <form id="create_task">
         <div class="form-group">
         <label for="taskList">Task-List: *</label>
             <?php if (isset($pdo)): ?>
                 <select id="taskList" name="taskList" required>
                     <?php foreach ($taskLists as $taskList): ?>
-                        <option value="<?= htmlspecialchars($taskList['id']) ?>"><?= htmlspecialchars($taskList['title']) ?></option>
+                        <option value="<?= htmlspecialchars($taskList->id) ?>"><?= htmlspecialchars($taskList->title) ?></option>
                     <?php endforeach; ?>
                 </select>
             <?php endif ?>
@@ -122,28 +119,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
     <ul id="tasklists-container">
         <?php if (isset($pdo)): ?>
             <?php foreach ($taskLists as $taskList): 
-                $listText = empty($taskList['description']) ?
-                    $taskList['title'] :
-                    $taskList['title'] . ' - ' . $taskList['description'];
-
                 // Fetch the tasks for this specific list
-                $stmt2 = $pdo->prepare('SELECT * FROM tasks WHERE task_list_id = :list_id');
-                $stmt2->execute(['list_id' => $taskList['id']]);
-                $tasks = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                $tasks = $tasksRepo->fetchAll($taskList->id);
             ?>
                 <li>
-                    <?= htmlspecialchars($listText) ?>
+                    <?= htmlspecialchars($taskList->preview) ?>
                 </li>
 
                 <li class="tasks-container-wrapper">
                     <ul>
                         <?php if ($tasks): ?>
                             <?php foreach ($tasks as $task): 
-                                $taskText = empty($task['description']) ?
-                                    $task['title'] :
-                                    $task['title'] . ' - ' . $task['description'];
                             ?>
-                                <li class="tasklist"><?= htmlspecialchars($taskText) ?></li>
+                                <li class="tasklist"><?= htmlspecialchars($task->preview) ?></li>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <li class="no-tasks">- No tasks found</li>
@@ -168,14 +156,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
                 Success: 'success'
             };
 
-            const create_form = document.getElementById("create_tasklist");
+            const create_taskList_form = document.getElementById("create_tasklist");
+            const create_task_form = document.getElementById("create_task");
             const container = document.getElementById("tasklists-container");
             
-            create_form.addEventListener("submit", async function (event) {
+            create_taskList_form.addEventListener("submit", async function (event) {
                 event.preventDefault();
-                const title = create_form.querySelector('input[name="title"]').value;
+                const title = create_taskList_form.querySelector('input[name="title"]').value;
                 console.log(title);
-                const description = create_form.querySelector('textarea[name="description"]').value;
+                const description = create_taskList_form.querySelector('textarea[name="description"]').value;
                 console.log(description);
                 const url = "/api/create_tasklist.php";
                 const method = "POST";
@@ -186,19 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
 
                 try {
                     console.log(JSON.stringify(payload));
-                    const response = await fetch(url, {
-                        method: method,
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error("http error");
-                    }
-
-                    const data = await response.json();
+                    const data = await sendRequest("/api/create_tasklist.php", payload);
                     console.log(data);
                     if (data.status === Status.Success) {
                         addTaskList(data.data.title, data.data.description);
@@ -215,12 +192,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
                             dropdown.appendChild(newOption);
                         }
 
-                        create_form.reset();
+                        create_taskList_form.reset();
                     }
                 } catch (error) {
                     console.error(error);
                 }
             });
+
+            create_task_form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                const taskListID = create_task_form.querySelector('select[name="taskList"]').value;
+                console.log(taskListID);
+                const title = create_task_form.querySelector('input[name="title"]').value;
+                console.log(title);
+                const description = create_task_form.querySelector('textarea[name="description"]').value;
+                console.log(description);
+                const url = "/api/create_task.php";
+                const method = "POST";
+                const payload = {
+                    taskListID: taskListID,
+                    title: title,
+                    description: description
+                };
+
+                try {
+                    console.log(JSON.stringify(payload));
+                    const data = await sendRequest("/api/create_task.php", payload);
+                    console.log(data);
+                    if (data.status === Status.Success) {
+                        addTask(data.data.title, data.data.description);
+                        create_task_form.reset();
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+
+            // Helper function to eliminate repetitive fetch code
+            async function sendRequest(url, payload) {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) throw new Error("HTTP error " + response.status);
+                return await response.json();
+            }
         }
     </script>
 </body>

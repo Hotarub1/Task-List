@@ -1,14 +1,13 @@
 <?php
 /*
- * This file creates a task list:
- * 1. Accept JSON request with `title` and `description`
+ * This file creates a task:
+ * 1. Accept JSON request with `tasklistID` `title` and `description`
  * 2. Validate request
  * 3. Store data in the database
  * 4. Respond with JSON if successful with 201 status code, otherwise, throw error
  */
 
-use Services\TaskListRepository;
-use Models\TaskList;
+use Services\TaskRepository;
 
 require_once __DIR__ . '/../config.php';
 
@@ -19,19 +18,19 @@ enum Status: string {
     case Success = 'success';
 }
 
-function http_response(string $message, Status $status, ?TaskList $taskList = null, int $status_code = 500) {
+function http_response(string $message, Status $status, array $data = [], int $status_code = 500) {
     http_response_code($status_code);
     header('Content-Type: application/json; charset=utf-8');
     $response = [
         'message' => $message,
         'status' => $status,
-        'data' => $taskList
+        'data' => $data
     ];
     print json_encode($response);
     exit;
 }
 
-$taskListRepo = new TaskListRepository($pdo);
+$tasksRepo = new TaskRepository($pdo);
 
 // Validate request method
 if ($method !== 'POST') {
@@ -41,30 +40,30 @@ if ($method !== 'POST') {
 $requestBody = file_get_contents('php://input');
 $requestJSON = json_decode($requestBody, true);
 // var_dump($requestJSON);
+$taskListID = trim($requestJSON['taskListID'] ?? '');
 $title = trim($requestJSON['title'] ?? '');
 $description = trim($requestJSON['description'] ?? '');
 
 // Validate request variables
-if (empty($title) || strlen($title) < 3) {
+if (empty($taskListID) || empty($title) || strlen($title) < 3) {
     http_response(message: 'Title is missing or shorter than 3 characters', status: Status::Error, status_code: 422);
 }
 
 // Handle taskList submission
 try {
-    $lastID = (int) $pdo->lastInsertId();
-    $taskList = $taskListRepo->create($lastID + 1, $title, $description);
+    $tasksRepo->create((int)$taskListID, $title, $description);
 
-    // $responseData = [
-    //     'id' => (int) $pdo->lastInsertId(),
-    //     'title' => $title,
-    //     'description' => $description
-    // ];
+    $responseData = [
+        'id' => (int) $pdo->lastInsertId(),
+        'title' => $title,
+        'description' => $description
+    ];
 
-    $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
+    $_SESSION['flash_message'] = '✅ Task created successfully!';
     
-    http_response(message: 'Created task list', status: Status::Success, taskList: $taskList, status_code: 201);
+    http_response(message: 'Created task', status: Status::Success, data: $responseData, status_code: 201);
 } catch (PDOException $e) {
-    http_response(message: 'Failed to create task list', status: Status::Error, status_code: 500);
+    http_response(message: 'Failed to create task', status: Status::Error, status_code: 500);
 } catch (Exception $e) {
     http_response(message: 'Something went wrong', status: Status::Error, status_code: 500);
 }
