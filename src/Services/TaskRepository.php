@@ -23,7 +23,8 @@ class TaskRepository
                 'title' => $title,
                 'description' => $description
             ]);
-            return new Task($taskListID, $title, $description);
+            $id = (int) $this->pdo->lastInsertId();
+            return new Task($id, $taskListID, $title, $description);
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }

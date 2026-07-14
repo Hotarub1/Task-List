@@ -7,30 +7,9 @@ require_once 'config.php';
 
 $taskListRepo = new TaskListRepository($pdo);
 $taskLists = $taskListRepo->fetchAll();
-var_dump(json_encode($taskLists));
+// var_dump(json_encode($taskLists));
 
 $tasksRepo = new TaskRepository($pdo);
-
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_task'])) {
-//     $taskListID = trim($_POST['taskList'] ?? '');
-//     $title = trim($_POST['title'] ?? '');
-//     $description = trim($_POST['description'] ?? '');
-
-//     if (empty($taskListID)) {
-//         $message = '❌ Task List is required.';
-//     } elseif (empty($title)) {
-//         $message = '❌ Title is required.';
-//     } elseif (isset($pdo)) {
-//         try {
-//             $tasksRepo->create($taskListID, $title, $description);
-//             $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
-//             header('Location: /?success=1');
-//             exit;
-//         } catch (PDOException $e) {
-//             $message = '❌ Error saving to database: ' . $e->getMessage();
-//         }
-//     }
-// }
 
 ?>
 <!DOCTYPE html>
@@ -122,12 +101,9 @@ $tasksRepo = new TaskRepository($pdo);
                 // Fetch the tasks for this specific list
                 $tasks = $tasksRepo->fetchAll($taskList->id);
             ?>
-                <li>
-                    <?= htmlspecialchars($taskList->preview) ?>
-                </li>
-
-                <li class="tasks-container-wrapper">
-                    <ul>
+                <li class="tasklist-container" data-tasklist-id="<?= (int) $taskList->id ?>">
+                    <div class="tasklist-header"><?= htmlspecialchars($taskList->preview) ?></div>
+                    <ul class="tasks-container-wrapper">
                         <?php if ($tasks): ?>
                             <?php foreach ($tasks as $task): 
                             ?>
@@ -178,7 +154,7 @@ $tasksRepo = new TaskRepository($pdo);
                     const data = await sendRequest("/api/create_tasklist.php", payload);
                     console.log(data);
                     if (data.status === Status.Success) {
-                        addTaskList(data.data.title, data.data.description);
+                        addTaskList(data.data.id, data.data.title, data.data.description);
 
                         // DYNAMICALLY UPDATE THE DROPDOWN SELECTOR
                         const dropdown = document.getElementById("taskList");
@@ -220,7 +196,7 @@ $tasksRepo = new TaskRepository($pdo);
                     const data = await sendRequest("/api/create_task.php", payload);
                     console.log(data);
                     if (data.status === Status.Success) {
-                        addTask(data.data.title, data.data.description);
+                        addTask(taskListID, data.data.title, data.data.description);
                         create_task_form.reset();
                     }
                 } catch (error) {
