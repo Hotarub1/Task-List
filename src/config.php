@@ -9,6 +9,7 @@ if ($_SERVER['HTTP_HOST'] == 'localhost') {
 require_once __DIR__ . '/Models/Model.php';
 require_once __DIR__ . '/Models/Task.php';
 require_once __DIR__ . '/Models/TaskList.php';
+require_once __DIR__ . '/Services/Repository.php';
 require_once __DIR__ . '/Services/TaskRepository.php';
 require_once __DIR__ . '/Services/TaskListRepository.php';
 

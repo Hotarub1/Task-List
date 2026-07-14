@@ -5,13 +5,10 @@ use PDO;
 use Exception;
 
 use \Models\TaskList;
-
-class TaskListRepository
+class TaskListRepository extends Repository
 {
-    private PDO $pdo;
-
     public function __construct(PDO $pdo) { 
-        $this->pdo = $pdo; 
+        parent::__construct($pdo);
     }
 
     public function create(int $id, string $title, ?string $description = null): TaskList {
