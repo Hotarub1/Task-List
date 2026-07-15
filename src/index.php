@@ -15,34 +15,10 @@ $tasksRepo = new TaskRepository($pdo);
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <title>Tasklist</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            max-width: 600px;
-            margin: 4rem auto;
-        }
-
-        .status {
-            padding: .75rem 1rem;
-            border-radius: 4px;
-            background: #f0f4ff;
-        }
-
-        .tasklist {
-            padding: .25rem;
-        }
-
-        li.tasks-container-wrapper {
-            list-style-type: none;
-        }
-
-        li.no-tasks {
-            list-style-type: none;
-        }
-    </style>
+<head> 
+    <meta charset="UTF-8"> 
+    <title>Tasklist</title> 
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
@@ -56,67 +32,13 @@ $tasksRepo = new TaskRepository($pdo);
     <?php endif; ?>
 
     <!-- HTML Form to Create Tasklist -->
-    <h2>Create New Tasklist</h2>
-    <form id="create_tasklist">
-        <div class="form-group">
-            <label for="title">Title *</label>
-            <input type="text" id="title" name="title" required maxlength="255">
-        </div>
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3"></textarea>
-        </div>
-        <button type="submit" name="create_list">Create List</button>
-    </form>
+    <?php include 'components/forms/create-tasklist.php'; ?>
 
     <!-- HTML Form to Create Task -->
-    <h2>Create New Task</h2>
-    <form id="create_task">
-        <div class="form-group">
-        <label for="taskList">Task-List: *</label>
-            <?php if (isset($pdo)): ?>
-                <select id="taskList" name="taskList" required>
-                    <?php foreach ($taskLists as $taskList): ?>
-                        <option value="<?= htmlspecialchars($taskList->id) ?>"><?= htmlspecialchars($taskList->title) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            <?php endif ?>
-        </div>
-        <div class="form-group">
-            <label for="title">Title *</label>
-            <input type="text" id="title" name="title" required maxlength="255">
-        </div>
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3"></textarea>
-        </div>
-        <button type="submit" name="create_task">Create Task</button>
-    </form>
+    <?php include 'components/forms/create-task.php'; ?>
 
     <!-- Display Existing Tasklists -->
-    <h2>Existing Tasklists</h2>
-    <ul id="tasklists-container">
-        <?php if (isset($pdo)): ?>
-            <?php foreach ($taskLists as $taskList): 
-                // Fetch the tasks for this specific list
-                $tasks = $tasksRepo->fetchAll($taskList->id);
-            ?>
-                <li class="tasklist-container" data-tasklist-id="<?= (int) $taskList->id ?>">
-                    <div class="tasklist-header"><?= htmlspecialchars($taskList->preview) ?></div>
-                    <ul class="tasks-container-wrapper">
-                        <?php if ($tasks): ?>
-                            <?php foreach ($tasks as $task): 
-                            ?>
-                                <li class="tasklist"><?= htmlspecialchars($task->preview) ?></li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li class="no-tasks">- No tasks found</li>
-                        <?php endif; ?>
-                    </ul>
-                </li>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </ul>
+    <?php include 'components/lists/display-tasklists.php'; ?>
 
     <?php if (empty($taskLists)): ?>
         <p id="no-lists">- No lists found </p>
@@ -162,6 +84,7 @@ $tasksRepo = new TaskRepository($pdo);
                             // Create a new <option value="NEW_ID">NEW_TITLE</option>
                             const newOption = document.createElement("option");
                             newOption.value = data.data.id; // The database ID returned by PHP
+                            console.log(newOption.value + " This is garbage");
                             newOption.textContent = data.data.title; // The clean title text
                             
                             // Append it to the dropdown list instantly

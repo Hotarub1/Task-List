@@ -11,13 +11,14 @@ class TaskListRepository extends Repository
         parent::__construct($pdo);
     }
 
-    public function create(int $id, string $title, ?string $description = null): TaskList {
+    public function create(string $title, ?string $description = null): TaskList {
         try {
             $stmt = $this->pdo->prepare("INSERT INTO taskLists (title, description) VALUES (:title, :description)");
             $stmt->execute([ 
                 'title' => $title, 
                 'description' => $description 
             ]); 
+            $id = (int) $this->pdo->lastInsertId();
             return new TaskList($id, $title, $description);
         } catch (Exception $e) {
             throw new Exception($e->getMessage());

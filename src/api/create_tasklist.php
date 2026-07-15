@@ -51,17 +51,9 @@ if (empty($title) || strlen($title) < 3) {
 
 // Handle taskList submission
 try {
-    $lastID = (int) $pdo->lastInsertId();
-    $taskList = $taskListRepo->create($lastID + 1, $title, $description);
-
-    // $responseData = [
-    //     'id' => (int) $pdo->lastInsertId(),
-    //     'title' => $title,
-    //     'description' => $description
-    // ];
-
-    $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
+    $taskList = $taskListRepo->create($title, $description);
     
+    $_SESSION['flash_message'] = '✅ Tasklist created successfully!';
     http_response(message: 'Created task list', status: Status::Success, taskList: $taskList, status_code: 201);
 } catch (PDOException $e) {
     http_response(message: 'Failed to create task list', status: Status::Error, status_code: 500);
