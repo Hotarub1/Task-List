@@ -22,27 +22,33 @@ $tasksRepo = new TaskRepository($pdo);
 </head>
 
 <body>
-    <h1>🐘 PHP + Nginx + MySQL</h1>
-    <p> <strong>PHP Version:</strong> <?= PHP_VERSION ?></p>
-    <p class="status"><strong>Database:</strong> <?= htmlspecialchars($dbStatus) ?></p>
+    <div class="big-one">
+        <div class="left-column">
+            <div class="intro">
+                <h1>PHP + Nginx + MySQL</h1>
+                <p> <strong>PHP Version:</strong> <?= PHP_VERSION ?></p>
+                <p class="status"><strong>Database:</strong> <?= htmlspecialchars($dbStatus) ?></p> 
 
-    <!-- Display Message -->
-    <?php if (!empty($message)): ?>
-        <p class="status"><?= htmlspecialchars($message) ?></p> 
-    <?php endif; ?>
+                <!-- Display Message -->
+                <?php if (!empty($message)): ?>
+                    <p class="status"><?= htmlspecialchars($message) ?></p> 
+                <?php endif; ?>
+            </div>
 
-    <!-- HTML Form to Create Tasklist -->
-    <?php include 'components/forms/create-tasklist.php'; ?>
+            <div class="forms">
+                <!-- HTML Form to Create Tasklist -->
+                <?php include 'components/forms/create-tasklist.php'; ?>
 
-    <!-- HTML Form to Create Task -->
-    <?php include 'components/forms/create-task.php'; ?>
+                <!-- HTML Form to Create Task -->
+                <?php include 'components/forms/create-task.php'; ?>
+            </div>
+        </div> 
 
-    <!-- Display Existing Tasklists -->
-    <?php include 'components/lists/display-tasklists.php'; ?>
-
-    <?php if (empty($taskLists)): ?>
-        <p id="no-lists">- No lists found </p>
-    <?php endif; ?>
+        <div class="tasklists-div">
+            <!-- Display Existing Tasklists -->
+            <?php include 'components/lists/display-tasklists.php'; ?>
+        </div>
+    </div>
     
     <script src="tasklist.js"> </script>
 
@@ -84,11 +90,12 @@ $tasksRepo = new TaskRepository($pdo);
                             // Create a new <option value="NEW_ID">NEW_TITLE</option>
                             const newOption = document.createElement("option");
                             newOption.value = data.data.id; // The database ID returned by PHP
-                            console.log(newOption.value + " This is garbage");
                             newOption.textContent = data.data.title; // The clean title text
                             
                             // Append it to the dropdown list instantly
                             dropdown.appendChild(newOption);
+                        } else {
+                            showTaskForm(data.data.id, data.data.title);
                         }
 
                         create_taskList_form.reset();
